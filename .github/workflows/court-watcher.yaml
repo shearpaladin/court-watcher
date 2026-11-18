@@ -54,3 +54,15 @@ jobs:
         with:
           path: court_watcher_state.json
           key: court-state-${{ github.run_id }}
+
+  # Stops GitHub from auto-disabling this schedule after 60 days with no commits.
+  # Re-enabling the workflow through the API resets the inactivity timer.
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Keep schedule alive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/court-watcher.yml/enable"
