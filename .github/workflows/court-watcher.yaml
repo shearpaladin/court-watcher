@@ -40,6 +40,7 @@ jobs:
           WATCH_URL: ${{ secrets.WATCH_URL }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          DISCORD_PING_IDS: ${{ vars.DISCORD_PING_IDS }}
           TITLE_REGEX: ${{ vars.TITLE_REGEX }}
           DATE_REGEX: ${{ vars.DATE_REGEX }}
           TIME_REGEX: ${{ vars.TIME_REGEX }}

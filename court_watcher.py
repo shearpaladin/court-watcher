@@ -34,6 +34,8 @@ from playwright.sync_api import sync_playwright
 WATCH_URL = os.getenv("WATCH_URL", "PASTE_THE_BOOKING_PAGE_URL_HERE")
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK", "")
 NTFY_TOPIC = os.getenv("NTFY_TOPIC", "")
+# Discord user IDs to @mention on each alert, comma-separated (e.g. "123456789012345678,987...")
+PING_IDS = [i.strip() for i in os.getenv("DISCORD_PING_IDS", "").split(",") if i.strip().isdigit()]
 TITLE_REGEX = os.getenv("TITLE_REGEX") or r"^#\d+\s+BADMINTON COURT$"  # excludes FAMILY AND YOUTH
 DATE_REGEX = os.getenv("DATE_REGEX") or r"^(Sat|Sun)"  # weekends only
 TIME_REGEX = os.getenv("TIME_REGEX", "")
@@ -104,7 +106,13 @@ def notify(msg: str) -> None:
     print(msg)
     if DISCORD_WEBHOOK:
         try:
-            requests.post(DISCORD_WEBHOOK, json={"content": msg}, timeout=10)
+            mentions = " ".join(f"<@{i}>" for i in PING_IDS)
+            payload = {
+                "content": f"{mentions}\n{msg}" if mentions else msg,
+                "allowed_mentions": {"users": PING_IDS},  # only ping who you listed
+            }
+            r = requests.post(DISCORD_WEBHOOK, json=payload, timeout=10)
+            r.raise_for_status()
         except Exception as ex:
             print(f"Discord notify failed: {ex}")
     if NTFY_TOPIC:
