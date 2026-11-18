@@ -1,0 +1,55 @@
+name: Court watcher
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # hourly; extra runs just queue behind the running one, so there's no gap
+  workflow_dispatch:       # lets you start it by hand from the Actions tab
+
+# Only one watcher at a time. A new scheduled run waits in line instead of running in parallel.
+concurrency:
+  group: court-watcher
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355   # GitHub's hard cap is 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Restore state (which courts were already open)
+        uses: actions/cache/restore@v4
+        with:
+          path: court_watcher_state.json
+          key: court-state-${{ github.run_id }}
+          restore-keys: court-state-
+
+      - name: Watch courts
+        env:
+          WATCH_URL: ${{ secrets.WATCH_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          TITLE_REGEX: ${{ vars.TITLE_REGEX || 'BADMINTON COURT' }}
+          DATE_REGEX: ${{ vars.DATE_REGEX }}
+          TIME_REGEX: ${{ vars.TIME_REGEX }}
+          INTERVAL_SEC: ${{ vars.INTERVAL_SEC || '180' }}
+          RUN_MINUTES: "330"   # 5.5 hours, leaves room for setup inside the 6 hour cap
+        run: python court_watcher.py
+
+      - name: Save state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: court_watcher_state.json
+          key: court-state-${{ github.run_id }}
