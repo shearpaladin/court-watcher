@@ -40,7 +40,7 @@ jobs:
           WATCH_URL: ${{ secrets.WATCH_URL }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-          TITLE_REGEX: ${{ vars.TITLE_REGEX || 'BADMINTON COURT' }}
+          TITLE_REGEX: ${{ vars.TITLE_REGEX }}
           DATE_REGEX: ${{ vars.DATE_REGEX }}
           TIME_REGEX: ${{ vars.TIME_REGEX }}
           INTERVAL_SEC: ${{ vars.INTERVAL_SEC || '180' }}

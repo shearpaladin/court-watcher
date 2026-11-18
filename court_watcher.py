@@ -34,8 +34,8 @@ from playwright.sync_api import sync_playwright
 WATCH_URL = os.getenv("WATCH_URL", "PASTE_THE_BOOKING_PAGE_URL_HERE")
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK", "")
 NTFY_TOPIC = os.getenv("NTFY_TOPIC", "")
-TITLE_REGEX = os.getenv("TITLE_REGEX", "BADMINTON COURT")
-DATE_REGEX = os.getenv("DATE_REGEX", "")
+TITLE_REGEX = os.getenv("TITLE_REGEX") or r"^#\d+\s+BADMINTON COURT$"  # excludes FAMILY AND YOUTH
+DATE_REGEX = os.getenv("DATE_REGEX") or r"^(Sat|Sun)"  # weekends only
 TIME_REGEX = os.getenv("TIME_REGEX", "")
 INTERVAL_SEC = int(os.getenv("INTERVAL_SEC", "180"))
 RUN_MINUTES = int(os.getenv("RUN_MINUTES", "0"))  # 0 = run forever; GitHub Actions sets this
@@ -145,12 +145,15 @@ def main():
                     print(f"\n{len(events)} matching events")
                     return
 
-                for e in events:
-                    was_open = state.get(e["id"], False)
-                    if e["open"] and not was_open:
-                        notify(f"🏸 Spot open: {e['title']} (#{e['id']})\n"
-                               f"{e['date']} {e['time']}\n{WATCH_URL}")
-                    state[e["id"]] = e["open"]
+                # Each slot alerts once, ever. state[id] == True means "already told you".
+                fresh = [e for e in events if e["open"] and not state.get(e["id"])]
+                if fresh:
+                    lines = [f"• {e['date'].split(',')[0]} {e['date'].split(',')[1].strip()}  "
+                             f"{e['time']}  {e['title']}" for e in fresh]
+                    notify(f"🏸 {len(fresh)} weekend court{'s' if len(fresh) > 1 else ''} open:\n"
+                           + "\n".join(lines) + f"\nBook: <{WATCH_URL}>")
+                    for e in fresh:
+                        state[e["id"]] = True
                 STATE_FILE.write_text(json.dumps(state))
                 print(time.strftime("%H:%M:%S"), f"checked {len(events)} events,",
                       sum(e["open"] for e in events), "open", flush=True)
